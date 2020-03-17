@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "rootDir": ".",
+    "baseUrl": ".",
+    "types": ["node", "jest"],
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "sourceMap": true,
+    "module": "esnext",
+    "moduleResolution": "node"
+  },
+  "include": ["**/*.ts"]
+}
