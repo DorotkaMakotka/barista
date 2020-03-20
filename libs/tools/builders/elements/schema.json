@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/schema",
-  "id": "packager",
+  "id": "package-elements",
   "type": "object",
   "properties": {
     "releasePackageJson": {

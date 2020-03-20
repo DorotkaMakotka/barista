@@ -23,7 +23,10 @@ import { NxJson, PackageJson, tryJsonParse } from '../util/json-utils';
 import { ElementsOptions } from './schema';
 
 /**
- * -----------------------------------------------------------
+ * Custom builder for the web-components package builder.
+ * This builder will schedule and run all projects that are tagged
+ * with a given tag in the nx.json. It is primarily used to run and package
+ * the web-components part of the library.
  */
 export function elementsBuilder(
   options: ElementsOptions,
@@ -39,7 +42,11 @@ export function elementsBuilder(
   ).pipe(
     // Find the projects that need to be built as part of the elements build.
     map((nxJson: NxJson) =>
-      filterTaggedProjects(nxJson, options.buildTag || 'scope:elements'),
+      filterTaggedProjects(
+        nxJson,
+        options.buildTag || 'scope:elements',
+        context.target.project,
+      ),
     ),
     // Create and schedule all other builds.
     switchMap((targetProjects: string[]) => {
@@ -70,10 +77,19 @@ export function elementsBuilder(
 }
 
 /** Filter incoming projects based on the tag defined in the options. */
-function filterTaggedProjects(nxJson: NxJson, buildTag: string): string[] {
-  return Object.entries(nxJson.projects)
-    .filter(([_project, { tags }]) => tags && tags.includes(buildTag))
-    .map(([project]) => project);
+function filterTaggedProjects(
+  nxJson: NxJson,
+  buildTag: string,
+  selfProject: string,
+): string[] {
+  return (
+    Object.entries(nxJson.projects)
+      // filter out the starter project (self)
+      .filter(([project]) => project !== selfProject)
+      // filter in all projects that include the selected tag
+      .filter(([_project, { tags }]) => tags && tags.includes(buildTag))
+      .map(([project]) => project)
+  );
 }
 
 /** Create a builder stream array for all targets. */
@@ -102,7 +118,35 @@ function createProjectBuildStreams(
 }
 
 /**
- * Syncs the projects package.json and the release package.json and writes the result to the output
+ * Syncs versions from the source to the target package.json
+ * @param sourcePackageJson - Package.json that contains all currently used
+ * dependencies, devDependecies and peerDependencies that are used in the
+ * project.
+ * @param targetPackageJson - Package.json that is meant for shipping.
+ * It contains the dependency/devDependency key but no version. It will receive
+ * the version from the SourePackageJson
+ * @param key - Which dependencies from the targetPackageJson should be
+ * iterated.
+ * @returns The modified targetPackageJson with all versions filled.
+ */
+function syncDependencyVersions(
+  sourcePackageJson: PackageJson,
+  targetPackageJson: PackageJson,
+  key: 'dependencies' | 'devDependencies' | 'peerDependencies',
+): PackageJson {
+  // Sync dependency versions, that are referenced in the release package.json
+  for (const dependencyKey of Object.keys(targetPackageJson[key])) {
+    const dependencyVersion =
+      sourcePackageJson.dependencies[dependencyKey] ||
+      sourcePackageJson.devDependencies[dependencyKey];
+    targetPackageJson[key][dependencyKey] = dependencyVersion;
+  }
+  return targetPackageJson;
+}
+
+/**
+ * Syncs the projects package.json and the release package.json and writes the
+ * result to the output.
  * Syncs the following things.
  * * dependency versions given in the releasePackageJson from project to release.
  * * package version from project to release.
@@ -128,16 +172,12 @@ function copyRootPackageJson(
       releasePackageJson.license = projectPackageJson.license;
       releasePackageJson.author = projectPackageJson.author;
 
-      // Sync dependency versions, that are referenced in the release package.json
-      for (const dependencyKey of Object.keys(
-        releasePackageJson.dependencies,
-      )) {
-        const dependencyVersion =
-          projectPackageJson.dependencies[dependencyKey] ||
-          projectPackageJson.devDependencies[dependencyKey];
-        releasePackageJson.dependencies[dependencyKey] = dependencyVersion;
-      }
-      return releasePackageJson;
+      // Sync the dependencyVersions
+      return syncDependencyVersions(
+        projectPackageJson,
+        releasePackageJson,
+        'dependencies',
+      );
     }),
     tap(() =>
       context.logger.info(

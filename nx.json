@@ -125,7 +125,9 @@
         "tree-table"
       ]
     },
-    "elements": {},
+    "package-elements": {
+      "tags": ["scope:elements", "type:library"]
+    },
     "alert": {
       "tags": ["scope:components", "type:library"]
     },

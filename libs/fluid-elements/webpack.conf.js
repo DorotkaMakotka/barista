@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+/**
+ * Extension of the webpack configuration.
+ * We are doing this to fix the builder setup once for all
+ * custom-element builds.
+ * Additionally, we will eventually need scss imports, which
+ * will require a webpack-scss loader.
+ */
 module.exports = config => {
   // Setup build outputs
   config.output.filename = 'index.js';

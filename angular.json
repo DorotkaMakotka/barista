@@ -3328,7 +3328,7 @@
         }
       }
     },
-    "elements": {
+    "package-elements": {
       "projectType": "library",
       "root": "libs/fluid-elements",
       "sourceRoot": "libs/fluid-elements",
@@ -3338,17 +3338,13 @@
           "options": {
             "releasePackageJson": "libs/fluid-elements/package.json",
             "outputPath": "dist/libs/fluid-elements",
-            "buildTag": "scope:elements",
-            "assets": [
-              {
-                "glob": "**/*",
-                "input": "libs/fluid-elements/assets",
-                "output": "dist/libs/elements/assets"
-              }
-            ]
+            "buildTag": "scope:elements"
           },
           "configurations": {
-            "production": {}
+            "production": {
+              "optimization": true,
+              "sourceMap": false
+            }
           }
         }
       }
